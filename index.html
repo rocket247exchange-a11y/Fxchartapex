@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FX Live — Professional Demo + Live Leaderboard</title>
+  <title>APEX LIVE MIRROR/COPY TRADING</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -15,7 +15,7 @@
         <div class="logo">FX</div>
         <div>
           <div class="title" id="pairTitle">EUR / USD</div>
-          <div class="subtitle">Live demo — candlesticks • markers • leaderboard</div>
+          <div class="subtitle">APEX LIVE MIRROR/COPY TRADING</div>
         </div>
       </div>
 
@@ -35,6 +35,67 @@
     <!-- Card / Chart + Notifications -->
     <div class="card">
       <div class="market-strip" id="marketStrip">
+        <div class="mi">Bid: <span id="bid">—</span></div>
+        <div class="mi">Ask: <span id="ask">—</span></div>
+        <div class="mi">Spread: <span id="spread">—</span></div>
+        <div class="mi">Vol: <span id="vol">—</span></div>
+      </div>
+
+      <div class="chart-wrap-inner">
+        <div class="chart-container" id="chartContainer">
+          <canvas id="fxCanvas" aria-label="candlestick chart"></canvas>
+          <div id="live" class="live-badge">—</div>
+        </div>
+
+        <div class="toolbar">
+          <div class="legend">
+            <div><span class="swatch up"></span> Up</div>
+            <div><span class="swatch dn"></span> Down</div>
+            <div class="counter" id="emailsCounter">Emails: 0</div>
+          </div>
+
+          <div class="actions">
+            <button id="mirrorBtn" class="mirror">Mirror Live Trades</button>
+            <button id="pauseBtn" class="ghost">Pause</button>
+          </div>
+        </div>
+
+        <div class="below">
+          <div class="toasts" id="toasts" aria-live="polite"></div>
+
+          <div class="stream" aria-live="polite" role="log">
+            <div class="stream-head">
+              <div>
+                <div class="stream-title">Mirrored notifications</div>
+                <!-- helper text removed intentionally per request -->
+              </div>
+              <div class="muted" id="lastTime">—</div>
+            </div>
+
+            <div class="carousel-list" id="carouselList" aria-hidden="false"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <section class="leaderboard-wrap">
+      <div class="leaderboard-header">
+        <div class="lb-title">Top Traders</div>
+        <div class="lb-sub muted">Live performance leaderboard — updates in real-time</div>
+      </div>
+
+      <div class="leaderboard-card" id="leaderboardCard">
+        <div class="lb-rows" id="lbRows" aria-live="polite"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>      <div class="market-strip" id="marketStrip">
         <div class="mi">Bid: <span id="bid">—</span></div>
         <div class="mi">Ask: <span id="ask">—</span></div>
         <div class="mi">Spread: <span id="spread">—</span></div>
