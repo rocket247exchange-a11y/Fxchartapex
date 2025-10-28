@@ -300,6 +300,141 @@ function renderLeaderboard(initial=false){
   }
 }
 function leaderboardTick(){
+  for (const t of traders){
+    const change = (Math.random()-0.5) * (Math.random()*4);
+    t.profitPct = Math.max(-50, +(t.profitPct + change).toFixed(2));
+    if (Math.random() > 0.45) t.trades += Math.floor(Math.random()*3);
+    if (Math.random() < 0.12) t.winRate = Math.max(40, Math.min(99, t.winRate + (Math.random()>0.5?1:-1)));
+  }
+  sortTraders();
+  renderLeaderboard(false);
+}
+function rewardRandomTrader(price){
+  const t = traders[Math.floor(Math.random()*traders.length)];
+  if (!t) return;
+  const bump = +( (Math.random()*3 + (Math.random()>0.6?2:0)).toFixed(2) );
+  t.profitPct = +(t.profitPct + bump).toFixed(2);
+  t.trades += Math.floor(1 + Math.random()*4);
+  if (Math.random() < 0.35) pushNotification(genEmail(), `mirrored ${t.handle} @ ${fmt(price)}`);
+  sortTraders(); renderLeaderboard(false);
+}
+
+/* ---------------- UI EVENTS ---------------- */
+mirrorBtn.addEventListener('click', ()=>{
+  pushToast('Top up now to mirror this trades', 'Top up now to mirror this trades', true);
+  pushNotification(genEmail(), 'mirrored (mirror button)');
+});
+pauseBtn.addEventListener('click', ()=> {
+  paused = !paused;
+  pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+  pushToast(paused ? 'Feed paused' : 'Feed resumed', paused ? 'Live updates paused' : 'Live updates resumed', true);
+});
+pairSelect.addEventListener('change', (e)=>{
+  currentPair = e.target.value;
+  pairTitle.textContent = e.target.options[e.target.selectedIndex].text;
+  candles = genHistory(currentPair);
+  markers = [];
+  drawAll();
+});
+
+/* ---------------- START ---------------- */
+seedTraders();
+setInterval(leaderboardTick, LB_UPDATE_MS);
+
+setTimeout(()=> {
+  if (container.clientHeight < 140) container.style.height = Math.max(window.innerHeight * 0.45, 380) + 'px';
+  fitCanvas();
+  updateMarketInfo();
+  setInterval(tickUpdate, TICK_MS);
+  setInterval(finalizeCandle, CANDLE_MS);
+  setInterval(()=> pushNotification(genEmail(), 'mirrored activity'), NOTIFY_MS);
+}, 60);
+
+/* Expose */
+window.FX_DEMO = { pushNotification, pushToast, candles, markers, traders };t t = last.time + 60;
+  const open = last.close;
+  const volFactor = (currentPair==='USDJPY') ? 0.02 : 0.0018;
+  const change = (Math.random()-0.5)*volFactor;
+  const close = Math.max(0.0001, open + change);
+  const high = Math.max(open, close) + Math.random()*0.0008 + (currentPair==='USDJPY'?0.02:0);
+  const low = Math.min(open, close) - Math.random()*0.0008 - (currentPair==='USDJPY'?0.02:0);
+  candles.push({ time: t, open:+open.toFixed((currentPair==='USDJPY')?3:5), high:+high.toFixed((currentPair==='USDJPY')?3:5), low:+low.toFixed((currentPair==='USDJPY')?3:5), close:+close.toFixed((currentPair==='USDJPY')?3:5) });
+  if (candles.length > CANDLES_VISIBLE + 20) candles.shift();
+  updateMarketInfo();
+  drawAll();
+}
+
+/* ---------------- NOTIFICATIONS ---------------- */
+function pushNotification(address, meta='mirrored activity'){
+  const el = document.createElement('div'); el.className = 'notify enter';
+  el.innerHTML = `<div class="notify-left"><div class="dot"></div><div><div class="address">${address}</div><div class="meta">${meta}</div></div></div><div style="font-size:12px;color:var(--muted)">${new Date().toLocaleTimeString()}</div>`;
+  carouselList.appendChild(el);
+  emailCount++; emailsCounter.textContent = 'Emails: ' + emailCount;
+  lastTimeEl.textContent = new Date().toLocaleTimeString();
+  if (carouselList.children.length > MAX_NOTIF) carouselList.removeChild(carouselList.firstElementChild);
+}
+
+/* ---------------- TOASTS ---------------- */
+function pushToast(title, body, short=true){
+  const t = document.createElement('div'); t.className='toast';
+  t.innerHTML = `<div style="font-weight:800">${title}</div><div style="margin-top:6px;opacity:.95">${body}</div>`;
+  toastsEl.insertBefore(t, toastsEl.firstChild);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(-8px)'; setTimeout(()=> t.remove(),360); }, short?4200:6200);
+}
+
+/* ---------------- LEADERBOARD ---------------- */
+function seedTraders(){
+  const handles = NAME_POOL;
+  traders = [];
+  for (let i=0;i<8;i++){
+    const h = handles[i % handles.length];
+    const profit = +(50 + Math.random()*180).toFixed(2);
+    const win = Math.floor(60 + Math.random()*35);
+    const trades = Math.floor(40 + Math.random()*200);
+    traders.push({ id:i+1, handle: '@' + h, profitPct: profit, winRate: win, trades: trades, lastProfit: profit });
+  }
+  sortTraders();
+  renderLeaderboard(true);
+}
+function sortTraders(){
+  traders.sort((a,b)=> b.profitPct - a.profitPct);
+  traders.forEach((t, idx)=> t.rank = idx+1);
+}
+function renderLeaderboard(initial=false){
+  const prevOrder = Array.from(lbRows.children).map(n => n.dataset.handle);
+  lbRows.innerHTML = '';
+  for (const t of traders){
+    const row = document.createElement('div'); row.className = 'lb-row'; row.dataset.handle = t.handle;
+    row.innerHTML = `
+      <div class="lb-rank">${t.rank}</div>
+      <div class="lb-handle">${t.handle}</div>
+      <div class="lb-profit" style="color:${t.profitPct>=0? '#16a34a':'#ef4444'}">${t.profitPct.toFixed(2)}%</div>
+      <div class="lb-win">${t.winRate}%</div>
+      <div class="lb-trades">${t.trades}</div>
+      <div class="lb-action"><button data-handle="${t.handle}" class="lb-btn">Mirror</button></div>
+    `;
+    lbRows.appendChild(row);
+  }
+  lbRows.querySelectorAll('.lb-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      const handle = e.currentTarget.dataset.handle;
+      pushToast('Top up now to mirror this trades', `Top up now to mirror ${handle}'s trades`, true);
+      pushNotification(genEmail(), `mirrored ${handle} (manual)`);
+    });
+  });
+
+  if (!initial && prevOrder.length){
+    const newOrder = Array.from(lbRows.children).map(n=> n.dataset.handle);
+    newOrder.forEach((h, idx) => {
+      const prevIdx = prevOrder.indexOf(h);
+      const node = lbRows.children[idx];
+      if (prevIdx === -1) return;
+      if (prevIdx > idx){ node.classList.add('up-move'); setTimeout(()=> node.classList.remove('up-move'), 900); }
+      else if (prevIdx < idx){ node.classList.add('down-move'); setTimeout(()=> node.classList.remove('down-move'), 900); }
+    });
+  }
+}
+function leaderboardTick(){
   // small nudges
   for (const t of traders){
     const change = (Math.random()-0.5) * (Math.random()*4);
